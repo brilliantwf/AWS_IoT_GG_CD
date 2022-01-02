@@ -1,0 +1,6 @@
+version: '3'
+services:
+  web:
+    image: "123412341234.dkr.ecr.us-east-1.amazonaws.com/hello-world-counter:latest"
+    ports:
+      - "80:5000"
