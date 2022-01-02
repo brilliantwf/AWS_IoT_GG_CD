@@ -1,8 +1,3 @@
----
-title: '使用Jenkins和ECR为AWS IoT Greengrass边缘设备构建持续交付流水线'
-author: Felix
-output: word_document
----
 
 # 使用Jenkins和ECR为AWS IoT Greengrass边缘设备构建持续交付流水线
 ## 背景
@@ -10,7 +5,7 @@ AWS于2020年发布的Greengrass Docker Application Deployment连接器,可以�
 ## 架构及流程
 ![](res/1641091802530.png) 
 
-1. Github上托管容器相关代码,dockerfile,app.py,requirements等
+1. Github上托管容器相关代码,dockerfile,app.py,requirements等,参考此仓库中的dockerfile
 2. Github上的更新和提交触发Jenkins pipeline,Jenkins pipeline开始构建容器
 3. 构建容器结束后将容器推送至ECR仓库
 4. ECR 仓库存储latest版本容器
@@ -55,57 +50,7 @@ aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS
     - 在pipeline中,GitHub 项目中填入项目URL例如https://github.com/brilliantwf/ggcontainer.git/
     - 在构建触发器中,勾选**GitHub hook trigger for GITScm polling**
     - 在高级项目选项-pipeline中选择Pipeline Script
-    - 在脚本中输入以下代码
-
-```groovy
-pipeline {
-    agent any
-    environment {
-        AWS_ACCOUNT_ID="ACCOUNT_ID"
-        AWS_DEFAULT_REGION="ap-southeast-1" 
-        IMAGE_REPO_NAME="reponame"
-        IMAGE_TAG="latest"
-        GITHUB_REPO="github_project"
-        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
-    }
-    stages {
-        
-         stage('Logging into AWS ECR') {
-            steps {
-                script {
-                sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
-                }
-                 
-            }
-        }
-        
-        stage('Cloning Git') {
-            steps {
-                checkout([$class: 'GitSCM', branches: [[name: '*/main']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: '${GITHUB_REPO}']]])     
-            }
-        }
-  
-    // Building Docker images
-    stage('Building image') {
-      steps{
-        script {
-          dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
-        }
-      }
-    }
-   
-    // Uploading Docker images into AWS ECR
-    stage('Pushing to ECR') {
-     steps{  
-         script {
-                sh "docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"
-                sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
-         }
-        }
-      }
-    }
-}
-```
+    - 在脚本中输入pipeline.yml文件中的内容
 4. 此时可以对Pipelie进行测试,如无报错即可进行后续
    ![图 13](res/1641094546695.png)  
 ## 持续交付环境整体部署
